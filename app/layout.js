@@ -3,16 +3,17 @@ import "./globals.css";
 export const metadata = {
   title: "Divyesh Khatri",
   description: "Personal website — under construction.",
-  openGraph: {
-    title: "Divyesh Khatri",
-    description: "Personal website — under construction.",
-    type: "website",
-  },
 };
 
 export default function RootLayout({ children }) {
   return (
     <html lang="en">
+      <head>
+        <link
+          href="https://fonts.googleapis.com/css2?family=Rajdhani:wght@300;400;500;600;700&display=swap"
+          rel="stylesheet"
+        />
+      </head>
       <body>{children}</body>
     </html>
   );
