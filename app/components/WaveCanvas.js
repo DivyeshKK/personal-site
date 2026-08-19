@@ -1,5 +1,6 @@
 "use client";
 import { useEffect, useRef, useCallback } from "react";
+import useReducedMotion from "../lib/useReducedMotion";
 
 const GRID = 10;
 const BG_R = 28, BG_G = 38, BG_B = 52;
@@ -13,6 +14,7 @@ export default function WaveCanvas() {
   const ripples = useRef([]);
   const animRef = useRef(null);
   const dimsRef = useRef({ cols: 0, rows: 0 });
+  const reducedMotion = useReducedMotion();
 
   const init = useCallback(() => {
     const canvas = canvasRef.current;
@@ -33,6 +35,7 @@ export default function WaveCanvas() {
   }, [init]);
 
   useEffect(() => {
+    if (reducedMotion) return;
     const handlePointer = (e) => {
       const t = e.touches ? e.touches[0] : e;
       const nx = t.clientX;
@@ -58,7 +61,7 @@ export default function WaveCanvas() {
       window.removeEventListener("touchmove", handlePointer);
       window.removeEventListener("touchstart", handlePointer);
     };
-  }, []);
+  }, [reducedMotion]);
 
   useEffect(() => {
     const canvas = canvasRef.current;
@@ -69,7 +72,7 @@ export default function WaveCanvas() {
     const frameInterval = 1000 / FPS;
 
     const render = (now) => {
-      animRef.current = requestAnimationFrame(render);
+      if (!reducedMotion) animRef.current = requestAnimationFrame(render);
       if (now - lastFrame < frameInterval) return;
       lastFrame = now;
       t++;
@@ -137,7 +140,7 @@ export default function WaveCanvas() {
 
     animRef.current = requestAnimationFrame(render);
     return () => cancelAnimationFrame(animRef.current);
-  }, []);
+  }, [reducedMotion]);
 
   return (
     <canvas

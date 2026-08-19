@@ -24,17 +24,12 @@ export default function Projects() {
           display: "flex", justifyContent: "space-between",
           alignItems: "center", marginBottom: "56px",
         }}>
-          <Link href="/" style={{
+          <Link href="/" className="link-quiet" style={{
             fontSize: "11px", fontWeight: 500,
-            color: "rgba(255,255,255,0.3)",
             textTransform: "uppercase", letterSpacing: "0.12em",
             borderBottom: "1px solid rgba(255,255,255,0.1)",
             paddingBottom: "2px",
-            transition: "color 0.2s",
-          }}
-          onMouseEnter={(e) => e.target.style.color = "#fff"}
-          onMouseLeave={(e) => e.target.style.color = "rgba(255,255,255,0.3)"}
-          >← back</Link>
+          }}>← back</Link>
           <span style={{
             fontSize: "11px", fontWeight: 500,
             color: "rgba(255,255,255,0.15)",
@@ -57,13 +52,13 @@ export default function Projects() {
           {PROJECTS.map((project, i) => (
             <Link key={project.slug} href={`/projects/${project.slug}`}>
               <div
+                className="row"
                 onMouseEnter={() => setHoveredIdx(i)}
                 onMouseLeave={() => setHoveredIdx(null)}
                 style={{
                   padding: "20px 24px",
                   borderTop: "1px solid rgba(255,255,255,0.06)",
                   background: hoveredIdx === i ? "rgba(255,255,255,0.06)" : "transparent",
-                  transition: "background 0.2s linear",
                   cursor: "pointer",
                   display: "flex",
                   justifyContent: "space-between",
@@ -71,13 +66,12 @@ export default function Projects() {
                 }}
               >
                 <div>
-                  <div style={{
+                  <div className="row-title" style={{
                     fontSize: "clamp(20px, 2.5vw, 28px)",
                     fontWeight: 600,
                     textTransform: "uppercase",
                     letterSpacing: "0.02em",
                     color: hoveredIdx === i ? "#fff" : "rgba(255,255,255,0.6)",
-                    transition: "color 0.2s linear",
                   }}>
                     {project.title}
                   </div>
@@ -95,10 +89,9 @@ export default function Projects() {
                     ))}
                   </div>
                 </div>
-                <span style={{
+                <span className="row-arrow" style={{
                   fontSize: "18px",
                   color: "rgba(255,255,255,0.2)",
-                  transition: "all 0.2s",
                   transform: hoveredIdx === i ? "translateX(4px)" : "translateX(0)",
                   opacity: hoveredIdx === i ? 1 : 0.3,
                 }}>→</span>
