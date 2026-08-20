@@ -38,17 +38,12 @@ export default function ProjectPage({ params }) {
           display: "flex", justifyContent: "space-between",
           alignItems: "center", marginBottom: "48px",
         }}>
-          <Link href="/projects" style={{
+          <Link href="/projects" className="link-quiet" style={{
             fontSize: "11px", fontWeight: 500,
-            color: "rgba(255,255,255,0.3)",
             textTransform: "uppercase", letterSpacing: "0.12em",
             borderBottom: "1px solid rgba(255,255,255,0.1)",
             paddingBottom: "2px",
-            transition: "color 0.2s",
-          }}
-          onMouseEnter={(e) => e.target.style.color = "#fff"}
-          onMouseLeave={(e) => e.target.style.color = "rgba(255,255,255,0.3)"}
-          >← projects</Link>
+          }}>← projects</Link>
           <div style={{ display: "flex", gap: "8px" }}>
             {project.tags.map((tag) => (
               <span key={tag} style={{
@@ -112,17 +107,12 @@ export default function ProjectPage({ params }) {
             display: "flex", gap: "16px", marginBottom: "40px", flexWrap: "wrap",
           }}>
             {project.links.map((link) => (
-              <a key={link.url} href={link.url} target="_blank" rel="noopener noreferrer"
+              <a key={link.url} className="link-chip" href={link.url} target="_blank" rel="noopener noreferrer"
                 style={{
                   fontSize: "13px", fontWeight: 500,
-                  color: "rgba(255,255,255,0.4)",
                   padding: "8px 16px",
-                  border: "1px solid rgba(255,255,255,0.1)",
                   textTransform: "uppercase", letterSpacing: "0.06em",
-                  transition: "all 0.2s",
                 }}
-                onMouseEnter={(e) => { e.target.style.color = "#fff"; e.target.style.borderColor = "rgba(255,255,255,0.4)"; }}
-                onMouseLeave={(e) => { e.target.style.color = "rgba(255,255,255,0.4)"; e.target.style.borderColor = "rgba(255,255,255,0.1)"; }}
               >{link.label} ↗</a>
             ))}
           </div>

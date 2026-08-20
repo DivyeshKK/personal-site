@@ -1,6 +1,7 @@
 "use client";
 import { useEffect, useRef, useCallback, useState } from "react";
 import WaveCanvas from "./components/WaveCanvas";
+import useReducedMotion from "./lib/useReducedMotion";
 import { PROJECTS } from "./data/projects";
 
 const MODES = [
@@ -11,20 +12,25 @@ const MODES = [
 ];
 
 const TOTAL_ITEMS = 80;
+const SWAP_MS = 150;
+const OVERLAY_MS = 200;
 
 export default function Landing() {
   const [activeIndex, setActiveIndex] = useState(Math.floor(TOTAL_ITEMS / 2));
-  const [fade, setFade] = useState(true);
+  const [displayIndex, setDisplayIndex] = useState(Math.floor(TOTAL_ITEMS / 2));
+  const [contentVisible, setContentVisible] = useState(true);
   const [hoveredProject, setHoveredProject] = useState(null);
   const [openProject, setOpenProject] = useState(null);
-  const [projectFade, setProjectFade] = useState(false);
+  const [overlayVisible, setOverlayVisible] = useState(false);
   const stripRef = useRef(null);
   const itemRefs = useRef([]);
   const activeRef = useRef(Math.floor(TOTAL_ITEMS / 2));
   const scrollRef = useRef(null);
+  const swapTimer = useRef(null);
+  const closeTimer = useRef(null);
+  const reducedMotion = useReducedMotion();
 
-  const activeMode = activeIndex % MODES.length;
-  const mode = MODES[activeMode];
+  const mode = MODES[displayIndex % MODES.length];
 
   const scrollTo = useCallback((idx) => {
     const strip = stripRef.current;
@@ -39,10 +45,18 @@ export default function Landing() {
       if (strip) strip.style.transition = "none";
       scrollTo(activeRef.current);
       requestAnimationFrame(() => {
-        if (strip) strip.style.transition = "transform 0.5s cubic-bezier(0.2, 0, 0.2, 1)";
+        if (!strip) return;
+        strip.style.transition = reducedMotion
+          ? "none"
+          : "transform var(--duration-strip) var(--ease-drawer)";
       });
     });
-  }, [scrollTo]);
+  }, [scrollTo, reducedMotion]);
+
+  useEffect(() => () => {
+    clearTimeout(swapTimer.current);
+    clearTimeout(closeTimer.current);
+  }, []);
 
   useEffect(() => {
     const onResize = () => scrollTo(activeRef.current);
@@ -50,37 +64,44 @@ export default function Landing() {
     return () => window.removeEventListener("resize", onResize);
   }, [scrollTo]);
 
+  const closeProjectView = useCallback(() => {
+    setOverlayVisible(false);
+    clearTimeout(closeTimer.current);
+    closeTimer.current = setTimeout(() => setOpenProject(null), OVERLAY_MS);
+  }, []);
+
   const selectItem = (i) => {
     if (i === activeRef.current) return;
     // close any open project when switching modes
-    if (openProject !== null) {
-      setProjectFade(false);
-      setTimeout(() => setOpenProject(null), 150);
-    }
-    setFade(false);
+    if (openProject !== null) closeProjectView();
     activeRef.current = i;
     setActiveIndex(i);
-    requestAnimationFrame(() => {
-      scrollTo(i);
-      setTimeout(() => setFade(true), 150);
-    });
+    setContentVisible(false);
+    requestAnimationFrame(() => scrollTo(i));
+    clearTimeout(swapTimer.current);
+    swapTimer.current = setTimeout(() => {
+      setDisplayIndex(i);
+      setContentVisible(true);
+    }, SWAP_MS);
   };
 
   const openProjectView = (project) => {
-    setProjectFade(false);
-    setTimeout(() => {
-      setOpenProject(project);
-      requestAnimationFrame(() => {
-        setProjectFade(true);
-        if (scrollRef.current) scrollRef.current.scrollTop = 0;
-      });
-    }, 100);
+    clearTimeout(closeTimer.current);
+    setOpenProject(project);
+    requestAnimationFrame(() => {
+      setOverlayVisible(true);
+      if (scrollRef.current) scrollRef.current.scrollTop = 0;
+    });
   };
 
-  const closeProjectView = () => {
-    setProjectFade(false);
-    setTimeout(() => setOpenProject(null), 200);
-  };
+  useEffect(() => {
+    if (!openProject) return;
+    const onKeyDown = (e) => {
+      if (e.key === "Escape") closeProjectView();
+    };
+    window.addEventListener("keydown", onKeyDown);
+    return () => window.removeEventListener("keydown", onKeyDown);
+  }, [openProject, closeProjectView]);
 
   const strip = [];
   for (let i = 0; i < TOTAL_ITEMS; i++) strip.push({ ...MODES[i % MODES.length], realIndex: i });
@@ -108,8 +129,9 @@ export default function Landing() {
             position: "absolute", inset: 0, zIndex: 20,
             overflowY: "auto", overflowX: "hidden",
             background: "rgba(0,0,0,0.6)",
-            opacity: projectFade ? 1 : 0,
-            transition: "opacity 0.2s linear",
+            opacity: overlayVisible ? 1 : 0,
+            transform: reducedMotion || overlayVisible ? "none" : "translateY(8px)",
+            transition: "opacity var(--duration-base) var(--ease-out), transform var(--duration-base) var(--ease-out)",
           }}
         >
           <div style={{
@@ -118,20 +140,17 @@ export default function Landing() {
           }}>
             {/* Back */}
             <button
+              className="link-quiet"
               onClick={closeProjectView}
               style={{
                 background: "none", border: "none", cursor: "pointer",
                 fontSize: "11px", fontWeight: 500,
-                color: "rgba(255,255,255,0.35)",
                 fontFamily: "'Rajdhani', Arial, sans-serif",
                 textTransform: "uppercase", letterSpacing: "0.12em",
                 borderBottom: "1px solid rgba(255,255,255,0.1)",
                 paddingBottom: "2px", marginBottom: "40px",
                 display: "block",
-                transition: "color 0.2s",
               }}
-              onMouseEnter={(e) => e.target.style.color = "#fff"}
-              onMouseLeave={(e) => e.target.style.color = "rgba(255,255,255,0.35)"}
             >← back</button>
 
             {/* Tags */}
@@ -187,17 +206,12 @@ export default function Landing() {
             {openProject.links && (
               <div style={{ display: "flex", gap: "12px", marginBottom: "36px", flexWrap: "wrap" }}>
                 {openProject.links.map((link) => (
-                  <a key={link.url} href={link.url} target="_blank" rel="noopener noreferrer"
+                  <a key={link.url} className="link-chip" href={link.url} target="_blank" rel="noopener noreferrer"
                     style={{
                       fontSize: "12px", fontWeight: 500,
-                      color: "rgba(255,255,255,0.4)",
                       padding: "7px 14px",
-                      border: "1px solid rgba(255,255,255,0.1)",
                       textTransform: "uppercase", letterSpacing: "0.06em",
-                      transition: "all 0.2s",
                     }}
-                    onMouseEnter={(e) => { e.target.style.color = "#fff"; e.target.style.borderColor = "rgba(255,255,255,0.4)"; }}
-                    onMouseLeave={(e) => { e.target.style.color = "rgba(255,255,255,0.4)"; e.target.style.borderColor = "rgba(255,255,255,0.1)"; }}
                   >{link.label} ↗</a>
                 ))}
               </div>
@@ -260,7 +274,9 @@ export default function Landing() {
       }}>
         <div style={{
           textAlign: "center", pointerEvents: "auto",
-          opacity: fade ? 1 : 0, transition: "opacity 0.15s linear",
+          opacity: contentVisible ? 1 : 0,
+          transform: reducedMotion || contentVisible ? "none" : "translateY(4px)",
+          transition: "opacity var(--duration-fast) var(--ease-out), transform var(--duration-fast) var(--ease-out)",
         }}>
           {mode.type === "text" && (
             <>
@@ -286,29 +302,32 @@ export default function Landing() {
               minWidth: "min(500px, 80vw)",
             }}>
               {PROJECTS.map((project, i) => (
-                <div
+                <button
                   key={project.slug}
+                  className="row row-enter"
                   onClick={() => openProjectView(project)}
                   onMouseEnter={() => setHoveredProject(i)}
                   onMouseLeave={() => setHoveredProject(null)}
                   style={{
                     padding: "14px 20px",
                     background: hoveredProject === i ? "rgba(255,255,255,0.08)" : "rgba(0,0,0,0.2)",
-                    transition: "background 0.15s linear",
                     cursor: "pointer",
                     display: "flex",
                     justifyContent: "space-between",
                     alignItems: "center",
+                    border: "none",
                     borderBottom: "1px solid rgba(255,255,255,0.04)",
+                    font: "inherit",
+                    width: "100%",
+                    animationDelay: `${i * 40}ms`,
                   }}
                 >
-                  <div style={{
+                  <div className="row-title" style={{
                     fontSize: "clamp(16px, 2vw, 22px)",
                     fontWeight: 600,
                     textTransform: "uppercase",
                     letterSpacing: "0.03em",
                     color: hoveredProject === i ? "#fff" : "rgba(255,255,255,0.45)",
-                    transition: "color 0.15s linear",
                     textAlign: "left",
                   }}>{project.title}</div>
                   <div style={{
@@ -324,7 +343,7 @@ export default function Landing() {
                       }}>{tag}</span>
                     ))}
                   </div>
-                </div>
+                </button>
               ))}
             </div>
           )}
@@ -356,7 +375,7 @@ export default function Landing() {
                   color: i === activeIndex ? "#fff" : "rgba(255,255,255,0.18)",
                   textTransform: "uppercase", padding: "0 8px",
                   letterSpacing: "0.06em",
-                  transition: "color 0.2s linear",
+                  transition: "color var(--duration-fast) ease",
                   lineHeight: "64px", flexShrink: 0,
                 }}
               >{item.label}</button>
